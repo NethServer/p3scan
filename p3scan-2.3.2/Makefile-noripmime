@@ -1,0 +1,196 @@
+# P3Scan 2.3.2
+#
+# (C) 2003-2005 by Jack S. Lai <laitcg@cox.net>
+#
+# It's intent is to provide a follow on program to POP3-Virusscan-Proxy 0.4
+# by Folke Ashberg <folke@ashberg.de>.
+#
+# It is based upon his program but provides numerous changes to include
+# scanning pop3 mail for spam, hardening the program, addaption to todays
+# email environment, and many other changes.
+#
+# The initial release of p3scan includes patches made and submitted to the
+# original project but were never incorporated.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+# This program is released under the GPL with the additional exemption that
+# compiling, linking, and/or using OpenSSL is allowed."
+# (http://www.openssl.org/support/faq.html#LEGAL2)
+
+PROGS=p3scan
+RIPMIME=1.4.0.6
+DISTNAME="p3scan-2.3.2"
+
+# User options
+LOGOPT="LOG_PID|LOG_CONS"
+LOGFAC="LOG_DAEMON"
+LOGSET=-DLOGOPT=${LOGOPT} -DLOGFAC=${LOGFAC}
+LANG=en
+CC=gcc
+SYSINS=install
+#CFLAGS=-Wall -O3 -march=i686 ${LOGSET}
+CFLAGS=-Wall -O2 $(LOGSET)
+
+#ifdef DEMIME :)
+#LDFLAGS=-L. -lripmime -lpcre -lssl -lcrypto #-static
+#else
+LDFLAGS=-L. -lpcre -lssl -lcrypto
+#endif :)
+
+PREFIX=/usr
+DESTDIR=
+#MANDIR=$(PREFIX)/share/man/man8
+MANDIR=$(PREFIX)/man/man8
+piddir=/var/run/$(PROGS)
+datadir=/var/spool/$(PROGS)
+notify=/var/spool/$(PROGS)/notify
+userdir=/etc/$(PROGS)
+docdir=/usr/doc/$(DISTNAME)
+user=mail:mail
+# End user options
+
+OBJECTS=getlinep3.o getline_ssl.o parsefile.o p3scan.o \
+	scanner_basic.o scanner_avpd.o scanner_avpd_new.o \
+	scanner_trophie.o scanner_clamd.o scanner_bash.o
+#LIBS=libripmime.a
+
+all: $(PROGS)
+
+#ripmime/libripmime.a:
+#	cd ripmime && $(MAKE) libripmime || exit 1
+
+#libripmime.a: ripmime/libripmime.a
+#	ln -sf ripmime/libripmime.a libripmime.a
+
+p3scan: $(OBJECTS) $(LIBS)
+	$(CC) -o $@ $(OBJECTS) $(LDFLAGS)
+
+.c.o:
+	@# generic for all c .o
+	$(CC) $(CFLAGS) -c $<
+
+dep depend .dep:
+	@echo "creating depencies"
+	rm -f .tmp.dep
+	@find -maxdepth 1 -name "*.c" -print0 | xargs -n 1 -0rt $(CC) -M $(CFLAGS)  >>.tmp.dep
+	mv .tmp.dep .dep
+
+install: p3scan
+	$(SYSINS) -v -m 550 --strip p3scan $(PREFIX)/sbin/
+	@if [ -f $(DESTDIR)/etc/sysconfig/init ] ; then $(SYSINS) -v -m 755 p3scan-init.d $(DESTDIR)/etc/init.d/p3scan; fi
+	@if [ -f $(DESTDIR)/etc/rc.d/rc.p3scan ] ; then \
+	   echo "rc.p3scan already exists, copying to $(DESTDIR)/etc/rc.d/rc.p3scan.new" ; \
+	   $(SYSINS) -v -m 660 rc.p3scan $(DESTDIR)/etc/rc.d/rc.p3scan.new ; \
+	else \
+	   $(SYSINS) -v -m 755 rc.p3scan $(DESTDIR)/etc/rc.d ; \
+	fi
+	@if test -d $(DESTDIR)$(piddir); then echo "$(DESTDIR)$(piddir) exists, not creating."; else mkdir -p $(DESTDIR)$(piddir); fi
+	@if test -d $(DESTDIR)$(userdir); then echo "$(DESTDIR)$(userdir) exits, not creating."; \
+	else mkdir -p $(DESTDIR)$(userdir); chown $(user) $(DESTDIR)$(userdir); fi
+	@if [ -f $(DESTDIR)$(userdir)/p3scan.conf ] ; then \
+	    echo "$(DESTDIR)$(userdir)/p3scan.conf already exists, copying to $(DESTDIR)$(userdir)/p3scan.conf.sample" ; \
+	    $(SYSINS) -v -m 600 p3scan.conf $(DESTDIR)$(userdir)/p3scan.conf.sample ; \
+	else \
+	    $(SYSINS) -v -m 600 p3scan.conf $(DESTDIR)$(userdir)/ ; \
+	fi
+	@if [ -f $(DESTDIR)$(userdir)/p3scan.mail ] ; then \
+	    echo "$(DESTDIR)$(userdir)/p3scan.mail already exists, renaming to $(DESTDIR)$(userdir)/p3scan.mail.old" ; \
+	    mv $(DESTDIR)$(userdir)/p3scan.mail $(DESTDIR)$(userdir)/p3scan.mail.old ; \
+	fi
+	ln -sf $(DESTDIR)$(userdir)/p3scan-$(LANG).mail $(DESTDIR)$(userdir)/p3scan.mail
+	@if test -d $(DESTDIR)$(datadir)/children; then echo "$(DESTDIR)$(datadir)/children exists, not creating."; else mkdir -p $(DESTDIR)$(datadir)/children; fi
+	@if test -d $(DESTDIR)$(datadir)/notify; then echo "$(DESTDIR)$(datadir)/notify exists, not creating."; else mkdir $(DESTDIR)$(datadir)/notify; fi
+	@chown $(user) $(DESTDIR)$(piddir)
+	@chown -R $(user) $(DESTDIR)$(datadir)
+	@chmod -R 700 $(DESTDIR)$(datadir)
+	$(SYSINS) -v -m 644 p3scan.8.gz $(DESTDIR)$(MANDIR)
+	$(SYSINS) -v -m 644 p3scan_readme.8.gz $(DESTDIR)$(MANDIR)
+	@if test -d $(DESTDIR)$(docdir); then echo "$(DESTDIR)$(docdir) exists, not creating."; else mkdir -p $(DESTDIR)$(docdir); fi
+	$(SYSINS) -v -m 644 AUTHORS $(DESTDIR)$(docdir)
+	$(SYSINS) -v -m 644 CHANGELOG $(DESTDIR)$(docdir)
+	$(SYSINS) -v -m 644 CONTRIBUTERS $(DESTDIR)$(docdir)
+	$(SYSINS) -v -m 644 LICENSE $(DESTDIR)$(docdir)
+	$(SYSINS) -v -m 644 LICENSE.OpenSSL $(DESTDIR)$(docdir)
+	$(SYSINS) -v -m 644 NEWS $(DESTDIR)$(docdir)
+	$(SYSINS) -v -m 644 README $(DESTDIR)$(docdir)
+	$(SYSINS) -v -m 644 README-ripmime $(DESTDIR)$(docdir)
+	$(SYSINS) -v -m 644 README-rpm $(DESTDIR)$(docdir)
+	$(SYSINS) -v -m 644 spamfaq.html $(DESTDIR)$(docdir)
+	$(SYSINS) -v -m 644 TODO.list $(DESTDIR)$(docdir)
+# Add translated mail files here:
+	$(SYSINS) -v -m 644 p3scan-??-??.mail $(DESTDIR)$(userdir)
+	$(SYSINS) -v -m 644 p3scan-??.mail $(DESTDIR)$(userdir)
+
+clean:
+	cd ripmime && $(MAKE) clean
+	rm -f ripmime/libripmime.a
+	rm -f ripmime/ripOLE/ripole
+	rm -f $(DISTNAME).tar.* $(PROGS) $(OBJECTS) $(LIBS) .dep core
+
+uninstall:
+	@if [ -f $(PREFIX)/sbin/$(PROGS) ] ; then rm -f $(PREFIX)/sbin/$(PROGS) ; fi
+	@if [ -f /etc/init.d/p3scan ] ; then rm -f /etc/init.d/p3scan ; fi
+	@if [ -f /etc/rc.d/rc.p3scan ] ; then rm -f /etc/rc.d/rc.p3scan ; fi
+	@if [ -f $(MANDIR)/p3scan.8.gz ] ; then rm -r $(MANDIR)/p3scan.8.gz ; fi
+	@if [ -f $(MANDIR)/p3scan_readme.8.gz ] ; then rm -r $(MANDIR)/p3scan_readme.8.gz ; fi
+	@if [ -f $(userdir)/p3scan.conf.sample ] ; then rm -f $(userdir)/p3scan.conf.sample ; fi
+	@if [ -f $(userdir)/p3scan.mail.sample ] ; then rm -f $(userdir)/p3scan.mail.sample ; fi
+	@if [ -d $(docdir) ] ; then rm -rf $(docdir) ; fi
+	@if [ -f $(MANDIR)/p3scan.8.gz ] ; then rm -f $(MANDIR)/p3scan.8.gz ; fi
+	@if [ -f $(MANDIR)/p3scan_readme.8.gz ] ; then rm -f $(MANDIR)/p3scan_readme.8.gz ; fi
+	@{ test ! -d $(datadir) || { find $(datadir) -type d ! -perm -700 -exec chmod u+w {} ';' && rm -fr $(datadir); }; }
+	@{ test ! -d $(piddir) || { find $(piddir) -type d ! -perm -700 -exec chmod u+w {} ';' && rm -fr $(piddir); }; }
+	@echo "$(PROGS), $(datadir), and samples removed."
+	@if [ -f $(userdir)/p3scan.conf ] ; then echo "$(userdir)/p3scan.conf remains." ; fi
+	@if [ -f $(userdir)/p3scan.mail ] ; then echo "$(userdir)/p3scan.mail and p3scan-??.mail remains." ; fi
+
+tags:
+	@#VIM Users know why! *g*
+	ctags --c-types=+c+p+f+x -R .
+
+fulltags:
+	@#VIM Users know why! *g*
+	find -maxdepth 1 -name "*.c" -print0 | xargs -n 1 -0r $(CC) -M -H $(CFLAGS) 2>.totag >/dev/null
+	find -maxdepth 1 -name "*.c" -print0 | xargs -n 1 -0r echo >>.totag
+	cat .totag | sed "s/^[[:space:]]*//" | grep -v "^$(CC)" | sort | uniq >.totag
+	ctags --c-types=+c+p+f+x -L .totag .
+	rm -f .totag
+
+dist:
+	rm -rf $(DISTNAME)
+	mkdir $(DISTNAME)
+	$(MAKE) clean
+	cp -prd Makefile* getline*.{c,h} parsefile.{c,h} p3scan.{c,h} $(DISTNAME)
+	cp scanner.h scanner_*.c $(DISTNAME)
+	cp p3scan.conf p3scan-??.mail p3scan-??-??.mail rc.p3scan $(DISTNAME)
+	cp p3scan.8.gz p3scan_readme.8.gz $(DISTNAME)
+	cp rc.p3scan p3scan-init.d p3scan.sh $(DISTNAME)
+	cp *.patch $(DISTNAME)	
+	cp AUTHORS CHANGELOG CONTRIBUTERS LICENSE LICENSE.OpenSSL NEWS README README-ripmime README-rpm spamfaq.html TODO.list $(DISTNAME)
+	cp -prdv ripmime-$(RIPMIME) $(DISTNAME)
+	cp -rv ripmime $(DISTNAME)
+	rm -f $(DISTNAME).tar.gz*
+	tar cfv $(DISTNAME).tar $(DISTNAME)/
+	rm -rf $(DISTNAME)
+	gzip -9f $(DISTNAME).tar
+	md5sum $(DISTNAME).tar.gz > $(DISTNAME).tar.gz.md5
+	@echo "Now create signature with:"
+	@echo "gpg -a -o $(DISTNAME).tar.gz.asc -b $(DISTNAME).tar.gz"
+#	gpg -a -o $(DISTNAME).tar.gz.asc -b $(DISTNAME).tar.gz
+
+.PHONY: clean install all tags fulltags dist dep depend
+
+#include .dep

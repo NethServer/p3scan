@@ -1,0 +1,10 @@
+Enable use of GNU/Autotools
+p3scan.c:TODO: Integrity check (check directories/permissions at start)
+p3scan.c:TODO: Wanted: Header parser
+p3scan.c:TODO: Wanted: white-list support
+p3scan.c:TODO: Wanted: no iptables support
+p3scan.c:      /* TODO: Close open descriptors on ANY errors in all this code! - I think I got em all */
+p3scan.c:      /* TODO: ripmime error checking */
+p3scan.c:      /* TODO: Fail on unexpected scanner return code. */
+p3scan.c:/* TODO: Enable ONLY -d -f -h and -v as command line options. */
+parsefile.c:   /* TODO: deleteting (value==NULL) does nothing */
