@@ -21,8 +21,8 @@ Prefix: /usr
 Source0: http://prdownloads.sourceforge.net/p3scan/%{name}-%{appver}.%{appmaj}.%{appmin}.tar.gz
 Source1: p3scand.sh
 Patch1: p3scan-2.3-rpmtargetopts.patch
-BuildRequires: pcre-devel,openssl-devel,clamd
-Requires: iptables, pcre,clamd
+BuildRequires: pcre-devel,openssl-devel, clamav-devel
+Requires: iptables, pcre, clamav-server
 Conflicts: pop3vscan
 
 %define user clam
