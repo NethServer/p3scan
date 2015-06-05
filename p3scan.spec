@@ -11,7 +11,7 @@
 Summary: Virus scanning transparent proxy server for POP3 POP3S SMTP
 Name: p3scan
 Version: %{appver}.%{appmaj}.%{appmin}
-Release: %{rpmrel}
+Release: %{rpmrel}%{?dist}
 License: GPL
 Group: System Environment/Daemons
 URL: http://p3scan.sourceforge.net/
