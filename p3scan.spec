@@ -5,7 +5,7 @@
 %define appmaj 3
 %define appmin 2
 %define apprel 0
-%define rpmrel 1
+%define rpmrel 2
 
 
 Summary: Virus scanning transparent proxy server for POP3 POP3S SMTP
@@ -21,6 +21,7 @@ Prefix: /usr
 Source0: http://prdownloads.sourceforge.net/p3scan/%{name}-%{appver}.%{appmaj}.%{appmin}.tar.gz
 Source1: p3scand.sh
 Patch1: p3scan-2.3-rpmtargetopts.patch
+Patch2: p3scan-2.3.2-block-sigchld.patch
 BuildRequires: pcre-devel,openssl-devel,clamd
 Requires: iptables, pcre,clamd
 Conflicts: pop3vscan
@@ -45,6 +46,7 @@ dangerous HTML tag stripping.
 %setup -n %{name}-%{appver}.%{appmaj}.%{appmin}
 
 %patch1 -p1
+%patch2 -p1
 
 %build
 if [ -f /usr/include/pcre/pcre.h ] || [ -f /usr/local/include/pcre/pcre.h ] ; then
@@ -114,5 +116,8 @@ fi
 %dir /var/spool/p3scan/notify
 
 %changelog
+* Fri Mar 20 2015 Filippo Carletti <filippo.carletti@nethesis.it>
+- Block SIGCHLD before fork() - Thanks to efw (FDD)
+
 * Tue May 20 2014 Filippo Carletti <filippo.carletti@nethesis.it>
 - initial build 2.3.2

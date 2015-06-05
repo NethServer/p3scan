@@ -1,0 +1,44 @@
+diff -Naur p3scan-2.3.2-orig/p3scan.c p3scan-2.3.2/p3scan.c
+--- p3scan-2.3.2-orig/p3scan.c	2005-12-12 16:00:00.000000000 +0100
++++ p3scan-2.3.2/p3scan.c	2015-03-22 17:58:53.228740536 +0100
+@@ -2888,6 +2888,7 @@
+    FILE * chowncmd;
+    unsigned long kbfree;
+    struct statvfs fs;
++   sigset_t blockmask;
+ 
+    w_memory_init();                  // We need to initialize our memory allocation routines
+ 
+@@ -3011,6 +3012,8 @@
+    }
+    numprocs=0;
+    do_log(LOG_DEBUG, "Waiting for connections.....");
++   sigemptyset(&blockmask);
++   sigaddset(&blockmask, SIGCHLD);
+    while ((connfd = accept(sockfd, (struct sockaddr *)&addr,&socksize)) >= 0){
+       if ((abortfd=open(ABORTFILE,O_RDONLY))>=0){
+          do_log(LOG_DEBUG,"Aloha No Ka ko");
+@@ -3019,6 +3022,7 @@
+          do_sigterm_main(-1);
+          exit(1);
+       }
++      sigprocmask(SIG_BLOCK, &blockmask, NULL);
+       if ((pid=fork())>0){
+          /* parent */
+          numprocs++;
+@@ -3026,6 +3030,7 @@
+          close (connfd);
+          /* wir brauchen die nicht, der childprocess kümmert sich drum
+             we don't need "them" (connfd?), child process takes care of that */
++         sigprocmask(SIG_UNBLOCK, &blockmask, NULL);
+          if (numprocs>=config->maxchilds){
+             do_log(LOG_WARNING, "MAX_CHILDS (%i) reached!", config->maxchilds);
+             while (1){
+@@ -3035,6 +3040,7 @@
+          }
+       }else{
+          /* child */
++         sigprocmask(SIG_UNBLOCK, &blockmask, NULL);
+          config->child=1;
+          if ( statvfs( config->virusdir, &fs ) == SCANNER_RET_ERR){
+             config->emergency="Unable to get available space!";
