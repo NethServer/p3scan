@@ -1,0 +1,11 @@
+[Unit]
+Description=p3scan proxy
+After=syslog.target network.target
+
+[Service]
+Type=forking
+PIDFile=/var/run/p3scan/p3scan.pid
+ExecStart=/sbin/p3scan -l /var/run/p3scan/p3scan.pid
+
+[Install]
+WantedBy=multi-user.target

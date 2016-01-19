@@ -5,7 +5,7 @@
 %define appmaj 3
 %define appmin 2
 %define apprel 0
-%define rpmrel 2
+%define rpmrel 3
 
 
 Summary: Virus scanning transparent proxy server for POP3 POP3S SMTP
@@ -20,13 +20,17 @@ BuildRoot: /var/tmp/%{name}-root
 Prefix: /usr
 Source0: http://prdownloads.sourceforge.net/p3scan/%{name}-%{appver}.%{appmaj}.%{appmin}.tar.gz
 Source1: p3scand.sh
+Source2: p3scan.service
 Patch1: p3scan-2.3-rpmtargetopts.patch
 Patch2: p3scan-2.3.2-block-sigchld.patch
-BuildRequires: pcre-devel,openssl-devel,clamd
-Requires: iptables, pcre,clamd
+BuildRequires: pcre-devel,openssl-devel,clamav-server,systemd
+Requires: iptables,pcre,clamav-server
+Requires(post): systemd
+Requires(preun): systemd
+Requires(postun): systemd
 Conflicts: pop3vscan
 
-%define user clam
+%define user amavis
 
 %description
 This is a fully transparent proxy-server for POP3, SMTP, and limited
@@ -62,49 +66,45 @@ rm -rf ${RPM_BUILD_ROOT}/var/spool/p3scannotify
 mkdir -p ${RPM_BUILD_ROOT}/var/spool/p3scan/children
 mkdir -p ${RPM_BUILD_ROOT}/var/spool/p3scan/notify
 mkdir -p ${RPM_BUILD_ROOT}%{_sysconfdir}/p3scan
-mkdir -p ${RPM_BUILD_ROOT}%{_sysconfdir}/init.d
 mkdir -p ${RPM_BUILD_ROOT}%{_sbindir}
 mkdir -p ${RPM_BUILD_ROOT}/var/run/p3scan
 mkdir -p ${RPM_BUILD_ROOT}%{_mandir}/man8
 mkdir -p ${RPM_BUILD_ROOT}%{_docdir}/%{name}-%{version}
 
-#chown -R %{user} ${RPM_BUILD_ROOT}/var/spool/p3scan
-#chown -R %{user} ${RPM_BUILD_ROOT}/var/run/p3scan
-#chown -R %{user} ${RPM_BUILD_ROOT}%{_sysconfdir}/p3scan
-#chmod -R 700 ${RPM_BUILD_ROOT}/var/spool/p3scan
-#chmod -R 700 ${RPM_BUILD_ROOT}/var/spool/p3scan/notify
+mkdir -p $RPM_BUILD_ROOT%{_unitdir}
+install -m 644 %{SOURCE2} $RPM_BUILD_ROOT%{_unitdir}
+
 install -m 750 p3scan ${RPM_BUILD_ROOT}%{_sbindir}
-#install -m 600 -o %{user} p3scan.conf ${RPM_BUILD_ROOT}%{_sysconfdir}/p3scan/p3scan.conf.sample
-#install -m 644 -o %{user} p3scan-en.mail ${RPM_BUILD_ROOT}%{_sysconfdir}/p3scan/p3scan.mail.sample
 install -m 644 p3scan-*.mail ${RPM_BUILD_ROOT}%{_sysconfdir}/p3scan/
-install -m 755 ${RPM_SOURCE_DIR}/p3scand.sh ${RPM_BUILD_ROOT}%{_sysconfdir}/init.d/p3scan
-#install -m 755 p3scan-init.d ${RPM_BUILD_ROOT}%{_sysconfdir}/init.d/p3scan
 install -m 644 p3scan.8.gz ${RPM_BUILD_ROOT}%{_mandir}/man8
 install -m 644 p3scan_readme.8.gz ${RPM_BUILD_ROOT}%{_mandir}/man8
 install -m 644 p3scan.sh AUTHORS CHANGELOG CONTRIBUTERS LICENSE LICENSE.OpenSSL NEWS README README-rpm spamfaq.html TODO.list ${RPM_BUILD_ROOT}%{_docdir}/%{name}-%{version}
 
-%post
-/sbin/chkconfig --add p3scan
+# install /usr/lib/tmpfiles.d/p3scan.conf
+mkdir -p ${RPM_BUILD_ROOT}%{_tmpfilesdir}
+cat > ${RPM_BUILD_ROOT}%{_tmpfilesdir}/p3scan.conf <<EOF
+# See tmpfiles.d(5) for details
 
+d /var/run/p3scan 0755 amavis amavis - -
+EOF
+
+%post
+%systemd_post p3scan.service
 
 %clean
 rm -rf ${RPM_BUILD_ROOT}
 
 %preun
-if [ $1 = 0 ]; then
-        if [ -f /var/lock/subsys/p3scan ]; then
-                /etc/rc.d/init.d/p3scan stop
-        fi
-        if [ -f /etc/rc.d/init.d/p3scan ]; then
-                /sbin/chkconfig --del p3scan
-        fi
-fi
+%systemd_preun p3scan.service
+
+%postun
+%systemd_postun_with_restart p3scan.service
 
 %files
 %{_sbindir}/p3scan
-#%{_sysconfdir}/p3scan/p3scan.conf.sample
 %{_sysconfdir}/p3scan/p3scan*.mail
-%{_sysconfdir}/init.d/p3scan
+%{_unitdir}/p3scan.service
+%{_tmpfilesdir}/p3scan.conf
 %{_mandir}/man8/p3scan.8.gz
 %{_mandir}/man8/p3scan_readme.8.gz
 %dir %{_mandir}/man8
