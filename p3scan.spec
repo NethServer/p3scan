@@ -24,7 +24,7 @@ Source2: p3scan.service
 Patch1: p3scan-2.3-rpmtargetopts.patch
 Patch2: p3scan-2.3.2-block-sigchld.patch
 BuildRequires: pcre-devel,openssl-devel,clamav-server,systemd
-Requires: iptables,pcre,clamav-server
+Requires: iptables,pcre,clamav-server,amavisd-new
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
