@@ -5,7 +5,7 @@
 %define appmaj 3
 %define appmin 2
 %define apprel 0
-%define rpmrel 5
+%define rpmrel 6
 
 
 Summary: Virus scanning transparent proxy server for POP3 POP3S SMTP
@@ -24,7 +24,7 @@ Source2: p3scan.service
 Patch1: p3scan-2.3-rpmtargetopts.patch
 Patch2: p3scan-2.3.2-block-sigchld.patch
 BuildRequires: pcre-devel,openssl-devel,clamav-server,systemd
-Requires: iptables,pcre,clamav-server,amavisd-new
+Requires: clamav-server,amavisd-new
 Requires: iptables,pcre
 Requires(post): systemd
 Requires(preun): systemd
