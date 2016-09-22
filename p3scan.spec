@@ -5,7 +5,7 @@
 %define appmaj 3
 %define appmin 2
 %define apprel 0
-%define rpmrel 4
+%define rpmrel 5
 
 
 Summary: Virus scanning transparent proxy server for POP3 POP3S SMTP
@@ -24,6 +24,7 @@ Source2: p3scan.service
 Patch1: p3scan-2.3-rpmtargetopts.patch
 Patch2: p3scan-2.3.2-block-sigchld.patch
 BuildRequires: pcre-devel,openssl-devel,clamav-server,systemd
+Requires: iptables,pcre,clamav-server,amavisd-new
 Requires: iptables,pcre
 Requires(post): systemd
 Requires(preun): systemd
@@ -116,6 +117,9 @@ rm -rf ${RPM_BUILD_ROOT}
 %dir /var/spool/p3scan/notify
 
 %changelog
+* Mon Sep 19 2016 Giacomo Sanchietti <giacomo.sanchietti@nethesis.it>
+- Release for NS 7
+
 * Fri Mar 20 2015 Filippo Carletti <filippo.carletti@nethesis.it>
 - Block SIGCHLD before fork() - Thanks to efw (FDD)
 
