@@ -1,20 +1,10 @@
-#
-# spec file for p3scan
-#
-%define appver 2
-%define appmaj 3
-%define appmin 2
-%define apprel 0
-%define rpmrel 6
-
-
 Summary: Virus scanning transparent proxy server for POP3 POP3S SMTP
 Name: p3scan
-Version: %{appver}.%{appmaj}.%{appmin}
-Release: %{rpmrel}%{?dist}
+Version: 2.3.2
+Release: 6%{?dist}
 License: GPL
 URL: %{url_prefix}/%{name}
-Source0: http://prdownloads.sourceforge.net/p3scan/%{name}-%{appver}.%{appmaj}.%{appmin}.tar.gz
+Source0: http://prdownloads.sourceforge.net/p3scan/%{name}-%{version}.tar.gz
 Source1: p3scand.sh
 Source2: p3scan.service
 Patch1: p3scan-2.3-rpmtargetopts.patch
@@ -43,7 +33,7 @@ dangerous HTML tag stripping.
 
 %prep
 
-%setup -n %{name}-%{appver}.%{appmaj}.%{appmin}
+%setup -n %{name}-%{version}
 
 %patch1 -p1
 %patch2 -p1
