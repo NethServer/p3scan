@@ -13,25 +13,20 @@ Name: p3scan
 Version: %{appver}.%{appmaj}.%{appmin}
 Release: %{rpmrel}%{?dist}
 License: GPL
-Group: System Environment/Daemons
-URL: http://p3scan.sourceforge.net/
-Packager: Jack S. Lai <laitcg at gmail dot com>
-BuildRoot: /var/tmp/%{name}-root
-Prefix: /usr
+URL: %{url_prefix}/%{name}
 Source0: http://prdownloads.sourceforge.net/p3scan/%{name}-%{appver}.%{appmaj}.%{appmin}.tar.gz
 Source1: p3scand.sh
 Source2: p3scan.service
 Patch1: p3scan-2.3-rpmtargetopts.patch
 Patch2: p3scan-2.3.2-block-sigchld.patch
-BuildRequires: pcre-devel,openssl-devel,clamav-server,systemd
-Requires: clamav-server,amavisd-new
+BuildRequires: pcre-devel,openssl-devel,systemd
 Requires: iptables,pcre
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
 Conflicts: pop3vscan
 
-%define user amavis
+%define user p3scan
 
 %description
 This is a fully transparent proxy-server for POP3, SMTP, and limited
@@ -86,14 +81,17 @@ mkdir -p ${RPM_BUILD_ROOT}%{_tmpfilesdir}
 cat > ${RPM_BUILD_ROOT}%{_tmpfilesdir}/p3scan.conf <<EOF
 # See tmpfiles.d(5) for details
 
-d /var/run/p3scan 0755 amavis amavis - -
+d /var/run/p3scan 0755 %{user} %{user} - -
 EOF
+
+%pre
+# ensure user exists:
+if ! id %{user} >/dev/null 2>&1 ; then
+   useradd -c 'p3scan service account' -r -M -d /var/spool/p3scan -s /sbin/nologin %{user}
+fi
 
 %post
 %systemd_post p3scan.service
-
-%clean
-rm -rf ${RPM_BUILD_ROOT}
 
 %preun
 %systemd_preun p3scan.service
@@ -102,6 +100,7 @@ rm -rf ${RPM_BUILD_ROOT}
 %systemd_postun_with_restart p3scan.service
 
 %files
+%defattr(-,root,root)
 %{_sbindir}/p3scan
 %{_sysconfdir}/p3scan/p3scan*.mail
 %{_unitdir}/p3scan.service
