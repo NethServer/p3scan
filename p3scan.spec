@@ -1,7 +1,7 @@
 Summary: Virus scanning transparent proxy server for POP3 POP3S SMTP
 Name: p3scan
 Version: 2.3.2
-Release: 6%{?dist}
+Release: 7%{?dist}
 License: GPL
 URL: %{url_prefix}/%{name}
 Source0: http://prdownloads.sourceforge.net/p3scan/%{name}-%{version}.tar.gz
@@ -106,6 +106,9 @@ fi
 %dir /var/spool/p3scan/notify
 
 %changelog
+* Thu Mar 8 2018 Davide Principi <davide.principi@nethesis.it> 2.3.2-7.ns7
+- Remove amavisd-new dependency for mail2 - NethServer/dev#5424
+
 * Mon Sep 19 2016 Giacomo Sanchietti <giacomo.sanchietti@nethesis.it>
 - Release for NS 7
 
